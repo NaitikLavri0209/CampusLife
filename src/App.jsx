@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Particles from "./Particles";
 import ElectricBorder from "./ElectricBorder";
 import Login from "./Login";
-import Signup from "./SignUp";
+import Signup from "./Signup";
 import LoadingScreen from "./LoadingScreen";
 import Home from "./Home";
 import Help from "./Help";
