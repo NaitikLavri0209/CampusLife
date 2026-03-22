@@ -154,14 +154,14 @@ function Home({ setPage, currentUser }) {
               style={mainButtonStyle}
               onClick={() => setPage("reviews")}
             >
-              CAMPUS REVIEW
+              CAMPUS TEA
             </button>
 
             <button
               style={mainButtonStyle}
               onClick={() => setPage("games")}
             >
-              CAMPUS GAMES
+             CAMPUS ARCADE
             </button>
           </div>
         </div>
@@ -178,15 +178,15 @@ function Home({ setPage, currentUser }) {
 
             <Card>
               <div style={cardStyle}>
-                <h2>CampusGames</h2>
+                <h2>CampusArcade</h2>
                 <p>Play with your campus community.</p>
               </div>
             </Card>
 
             <Card>
               <div style={cardStyle}>
-                <h2>Reviews</h2>
-                <p>Students review campus experiences.</p>
+                <h2>CampusTea</h2>
+                <p>Just spill the tea....</p>
               </div>
             </Card>
           </CardSwap>

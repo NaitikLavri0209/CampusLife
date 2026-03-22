@@ -1082,3 +1082,395 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
 }
+/* ── Campus Arcade ─────────────────────────────────────────── */
+.arcade-root {
+  position: relative;
+  min-height: 100vh;
+  background: black;
+  color: white;
+  overflow-x: hidden;
+}
+.arcade-particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.arcade-page {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+.arcade-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+.arcade-navbar-title {
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin: 0;
+}
+.arcade-navbar-sub {
+  opacity: 0.6;
+  font-size: 13px;
+}
+.arcade-back-btn {
+  padding: 8px 18px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.arcade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+}
+.arcade-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+.arcade-card:hover {
+  transform: translateY(-4px);
+}
+.arcade-card-img-wrap {
+  position: relative;
+}
+.arcade-card-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.arcade-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+}
+.arcade-tag-live {
+  background: #27ae60;
+  color: white;
+}
+.arcade-tag-soon {
+  background: rgba(255,255,255,0.15);
+  color: white;
+}
+.arcade-card-body {
+  padding: 16px;
+}
+.arcade-card-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0 0 8px;
+}
+.arcade-card-desc {
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.arcade-play-btn {
+  width: 100%;
+  padding: 10px;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+}
+.arcade-play-btn-disabled {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.4);
+  cursor: not-allowed;
+}
+
+/* ── Rock Paper Scissors ───────────────────────────────────── */
+.rps-root {
+  min-height: 100vh;
+  background: black;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+}
+.rps-header {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 40px;
+}
+.rps-back-btn {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.rps-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin: 0;
+  letter-spacing: 1px;
+}
+.rps-subtitle {
+  font-size: 13px;
+  opacity: 0.5;
+}
+.rps-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  max-width: 420px;
+}
+.rps-lobby-emojis {
+  font-size: 52px;
+  letter-spacing: 10px;
+}
+.rps-lobby-heading {
+  font-size: 22px;
+  margin: 0;
+}
+.rps-lobby-desc {
+  font-size: 14px;
+  opacity: 0.6;
+  line-height: 1.6;
+}
+.rps-find-btn {
+  padding: 12px 36px;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.rps-cancel-btn {
+  padding: 10px 28px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.rps-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-top: 40px;
+}
+.rps-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.rps-waiting-msg {
+  font-size: 15px;
+  opacity: 0.7;
+}
+.rps-playing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 500px;
+}
+.rps-vs-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+.rps-vs {
+  font-size: 22px;
+  opacity: 0.5;
+}
+.rps-player-name {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 16px;
+  border-radius: 10px;
+}
+.rps-choose-prompt {
+  font-size: 18px;
+  opacity: 0.8;
+}
+.rps-choices {
+  display: flex;
+  gap: 20px;
+}
+.rps-choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 28px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 14px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.rps-choice-btn:hover {
+  background: rgba(255,255,255,0.15);
+  transform: scale(1.07);
+}
+.rps-choice-emoji {
+  font-size: 40px;
+}
+.rps-choice-label {
+  font-size: 14px;
+  font-weight: bold;
+}
+.rps-waiting-move {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.rps-chose-text {
+  font-size: 18px;
+}
+.rps-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 500px;
+  width: 100%;
+}
+.rps-result-moves {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-top: 10px;
+}
+.rps-result-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.rps-result-label {
+  font-size: 14px;
+  opacity: 0.6;
+  margin: 0;
+}
+.rps-result-emoji {
+  font-size: 56px;
+}
+.rps-result-choice {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0;
+}
+.rps-result-vs {
+  font-size: 24px;
+  opacity: 0.4;
+}
+.rps-result-banner {
+  font-size: 28px;
+  font-weight: bold;
+  padding: 16px 40px;
+  border-radius: 16px;
+  text-align: center;
+}
+.rps-result-win {
+  background: rgba(39, 174, 96, 0.25);
+  border: 1px solid #27ae60;
+  color: #2ecc71;
+}
+.rps-result-lose {
+  background: rgba(231, 76, 60, 0.2);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+}
+.rps-result-draw {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+}
+.rps-result-actions {
+  display: flex;
+  gap: 16px;
+}
+.rps-scorebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 16px 28px;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+.rps-score-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 100px;
+}
+.rps-score-side-right {
+  align-items: flex-end;
+}
+.rps-score-name {
+  font-size: 13px;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+.rps-score-num {
+  font-size: 40px;
+  font-weight: bold;
+  line-height: 1;
+}
+.rps-score-divider {
+  font-size: 10px;
+  opacity: 0.4;
+  text-align: center;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}

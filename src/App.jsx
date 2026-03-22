@@ -10,6 +10,7 @@ import About from "./About";
 import Events from "./Events";
 import AdminPanel from "./AdminPanel";
 import CampusReviews from "./CampusReviews";
+import CampusArcade from "./CampusArcade";
 import { auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -133,6 +134,7 @@ function App() {
           updateEvent={updateEvent}
         />
       )}
+      {page === "games" && <CampusArcade setPage={setPage} currentUser={currentUser} />}
     </div>
   );
 }

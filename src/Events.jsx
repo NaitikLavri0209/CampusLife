@@ -10,6 +10,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  getDocs,
 } from "firebase/firestore";
 import "./index.css";
 
@@ -22,6 +23,8 @@ function Events({ setPage, currentUser }) {
   const [events, setEvents] = useState([]);
   const [enrolledEvents, setEnrolledEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [eventEnrollments, setEventEnrollments] = useState({});
+  const [expandedEnrollments, setExpandedEnrollments] = useState({});
 
   const isAdmin = currentUser?.role === "admin";
 
@@ -49,7 +52,7 @@ function Events({ setPage, currentUser }) {
     return () => unsub();
   }, []);
 
-  // Load enrolled events for this user
+  // Load enrolled events for this user (students only)
   useEffect(() => {
     if (!currentUser) return;
     const q = collection(db, "users", currentUser.uid, "enrolledEvents");
@@ -59,6 +62,28 @@ function Events({ setPage, currentUser }) {
     });
     return () => unsub();
   }, [currentUser]);
+
+  // Load all enrollments for every event (admin only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubscribers = [];
+
+    const loadEnrollments = async () => {
+      const eventsSnapshot = await getDocs(collection(db, "events"));
+      eventsSnapshot.forEach((eventDoc) => {
+        const eventId = eventDoc.id;
+        const enrollRef = collection(db, "events", eventId, "enrollments");
+        const unsub = onSnapshot(enrollRef, (snap) => {
+          const students = snap.docs.map((d) => d.data());
+          setEventEnrollments((prev) => ({ ...prev, [eventId]: students }));
+        });
+        unsubscribers.push(unsub);
+      });
+    };
+
+    loadEnrollments();
+    return () => unsubscribers.forEach((u) => u());
+  }, [isAdmin, events]);
 
   const seedDefaultEvents = async () => {
     const defaults = [
@@ -129,15 +154,33 @@ function Events({ setPage, currentUser }) {
       alert("You are already enrolled in this event.");
       return;
     }
+
+    // Save to user's enrolledEvents subcollection (existing)
     await setDoc(
       doc(db, "users", currentUser.uid, "enrolledEvents", event.id),
       { ...event, enrolledAt: Date.now() }
+    );
+
+    // Save to event's enrollments subcollection (new — for admin view)
+    await setDoc(
+      doc(db, "events", event.id, "enrollments", currentUser.uid),
+      {
+        uid: currentUser.uid,
+        name: currentUser.name || "Unknown",
+        studentId: currentUser.studentId || currentUser.uid,
+        enrolledAt: Date.now(),
+      }
     );
   };
 
   const handleUnenroll = async (eventId) => {
     if (!currentUser) return;
+
+    // Remove from user's enrolledEvents
     await deleteDoc(doc(db, "users", currentUser.uid, "enrolledEvents", eventId));
+
+    // Remove from event's enrollments subcollection
+    await deleteDoc(doc(db, "events", eventId, "enrollments", currentUser.uid));
   };
 
   const handlePosterUpload = (e) => {
@@ -151,6 +194,10 @@ function Events({ setPage, currentUser }) {
   const handleCloseForm = () => {
     setShowAddForm(false);
     setPosterPreview(null);
+  };
+
+  const toggleEnrollmentList = (eventId) => {
+    setExpandedEnrollments((prev) => ({ ...prev, [eventId]: !prev[eventId] }));
   };
 
   const enrolledIds = enrolledEvents.map((e) => e.id);
@@ -201,7 +248,7 @@ function Events({ setPage, currentUser }) {
               Enrolled Events ({enrolledEvents.length})
             </button>
 
-            {/* ✅ Only admin can see Add Event button */}
+            {/* Only admin can see Add Event button */}
             {isAdmin && (
               <button
                 className="events-btn-add"
@@ -333,40 +380,86 @@ function Events({ setPage, currentUser }) {
               <p className="events-empty">Loading events...</p>
             ) : (
               <div className="events-grid">
-                {displayEvents.map((event) => (
-                  <div key={event.id} className="events-card">
-                    <img
-                      src={event.image || "https://via.placeholder.com/140x180?text=No+Poster"}
-                      alt="poster"
-                    />
-                    <div className="events-card-info">
-                      <h3>{event.title}</h3>
-                      <p><strong>Date:</strong> {event.date}</p>
-                      {event.time && <p><strong>Time:</strong> {event.time}</p>}
-                      <p><strong>Location:</strong> {event.location}</p>
-                      <p>{event.description}</p>
+                {displayEvents.map((event) => {
+                  const enrollments = eventEnrollments[event.id] || [];
+                  const isExpanded = expandedEnrollments[event.id] || false;
 
-                      {viewType === "all" && !isAdmin && (
-                        <button
-                          className="events-btn-enroll"
-                          onClick={() => handleEnroll(event)}
-                        >
-                          Enroll Now
-                        </button>
-                      )}
+                  return (
+                    <div key={event.id} className="events-card">
+                      <img
+                        src={event.image || "https://via.placeholder.com/140x180?text=No+Poster"}
+                        alt="poster"
+                      />
+                      <div className="events-card-info">
+                        <h3>{event.title}</h3>
+                        <p><strong>Date:</strong> {event.date}</p>
+                        {event.time && <p><strong>Time:</strong> {event.time}</p>}
+                        <p><strong>Location:</strong> {event.location}</p>
+                        <p>{event.description}</p>
 
-                      {viewType === "enrolled" && (
-                        <button
-                          className="events-btn-enroll"
-                          style={{ background: "#e74c3c" }}
-                          onClick={() => handleUnenroll(event.id)}
-                        >
-                          Unenroll
-                        </button>
-                      )}
+                        {viewType === "all" && !isAdmin && (
+                          <button
+                            className="events-btn-enroll"
+                            onClick={() => handleEnroll(event)}
+                          >
+                            Enroll Now
+                          </button>
+                        )}
+
+                        {viewType === "enrolled" && (
+                          <button
+                            className="events-btn-enroll"
+                            style={{ background: "#e74c3c" }}
+                            onClick={() => handleUnenroll(event.id)}
+                          >
+                            Unenroll
+                          </button>
+                        )}
+
+                        {/* ── Admin: enrolled students panel ── */}
+                        {isAdmin && (
+                          <div className="events-enrollments-panel">
+                            <button
+                              className="events-enrollments-toggle"
+                              onClick={() => toggleEnrollmentList(event.id)}
+                            >
+                              {enrollments.length} Enrolled Student{enrollments.length !== 1 ? "s" : ""}
+                              {" "}{isExpanded ? "▲" : "▼"}
+                            </button>
+
+                            {isExpanded && (
+                              <div className="events-enrollments-list">
+                                {enrollments.length === 0 ? (
+                                  <p className="events-enrollments-empty">No students enrolled yet.</p>
+                                ) : (
+                                  <table className="events-enrollments-table">
+                                    <thead>
+                                      <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Student ID</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {enrollments.map((s, i) => (
+                                        <tr key={s.uid}>
+                                          <td>{i + 1}</td>
+                                          <td>{s.name}</td>
+                                          <td>{s.studentId}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {displayEvents.length === 0 && (
                   <p className="events-empty">

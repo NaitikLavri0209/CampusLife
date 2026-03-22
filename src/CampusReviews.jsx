@@ -278,7 +278,7 @@ function CreatePost({ currentUser, onPost }) {
     <div className="cr-create-wrap">
       {!open ? (
         <button className="cr-create-trigger" onClick={() => setOpen(true)}>
-          + Share a Campus Moment
+          + Share a Campus Tea
         </button>
       ) : (
         <div className="cr-create-form">
@@ -290,7 +290,7 @@ function CreatePost({ currentUser, onPost }) {
 
           <textarea
             className="cr-create-caption"
-            placeholder="What's happening on campus?"
+            placeholder="Spill the tea on campus..."
             value={caption}
             rows={3}
             onChange={(e) => setCaption(e.target.value)}
@@ -448,9 +448,9 @@ function CampusReviews({ setPage, currentUser }) {
         {/* Navbar */}
         <div className="cr-navbar">
           <div>
-            <h2 className="cr-navbar-title">CAMPUS REVIEWS</h2>
+            <h2 className="cr-navbar-title">CAMPUS TEA</h2>
             <small className="cr-navbar-sub">
-              {isAdmin ? "Moderating student posts" : "Share your campus moments"}
+              {isAdmin ? "Moderating student posts" : "Share your campus tea"}
             </small>
           </div>
           <div className="cr-navbar-actions">
