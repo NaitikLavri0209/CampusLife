@@ -1,8 +1,10 @@
 import React from "react";
 import Particles from "./Particles";
 import CardSwap, { Card } from "./CardSwap";
+import { auth } from "./firebase";
+import { signOut } from "firebase/auth";
 
-function Home({ setPage }) {
+function Home({ setPage, currentUser }) {
 
   const menuButtonStyle = {
     padding: "8px 20px",
@@ -40,9 +42,14 @@ function Home({ setPage }) {
     backdropFilter: "blur(10px)",
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setPage("landing");
+  // ✅ Proper Firebase logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setPage("landing");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
   };
 
   return (
@@ -55,7 +62,7 @@ function Home({ setPage }) {
         overflow: "hidden",
       }}
     >
-      {/* 🔥 PARTICLES */}
+      {/* PARTICLES */}
       <div
         style={{
           position: "absolute",
@@ -74,7 +81,22 @@ function Home({ setPage }) {
         />
       </div>
 
-      {/* 🔥 TOP MENU */}
+      {/* TOP MENU */}
+      <div
+        style={{
+          position: "absolute",
+          top: "20px",
+          left: "40px",
+          zIndex: 20,
+          color: "white",
+          fontSize: "14px",
+          opacity: 0.7,
+        }}
+      >
+        {/* ✅ Show logged in user name */}
+        {currentUser && `Welcome, ${currentUser.name}`}
+      </div>
+
       <div
         style={{
           position: "absolute",
@@ -98,7 +120,7 @@ function Home({ setPage }) {
         </button>
       </div>
 
-      {/* 🔥 MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <div
         style={{
           position: "relative",
@@ -119,7 +141,6 @@ function Home({ setPage }) {
             AI DRIVEN CAMPUS
           </h1>
 
-          {/* 🔥 NEW BUTTONS */}
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
             <button
               style={mainButtonStyle}
@@ -128,11 +149,18 @@ function Home({ setPage }) {
               EVENTS
             </button>
 
-            <button style={mainButtonStyle}>
+            {/* ✅ Now connected to reviews page */}
+            <button
+              style={mainButtonStyle}
+              onClick={() => setPage("reviews")}
+            >
               CAMPUS REVIEW
             </button>
 
-            <button style={mainButtonStyle}>
+            <button
+              style={mainButtonStyle}
+              onClick={() => setPage("games")}
+            >
               CAMPUS GAMES
             </button>
           </div>

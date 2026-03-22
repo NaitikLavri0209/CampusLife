@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import LiquidEther from "./LiquidEther";
+import React, { useState, useEffect } from "react";
+import Particles from "./Particles";
 import ElectricBorder from "./ElectricBorder";
 import Login from "./Login";
 import Signup from "./SignUp";
@@ -9,11 +9,33 @@ import Help from "./Help";
 import About from "./About";
 import Events from "./Events";
 import AdminPanel from "./AdminPanel";
+import CampusReviews from "./CampusReviews";
+import { auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 function App() {
   const [page, setPage] = useState("landing");
 
-  // 🔥 GLOBAL EVENTS STATE
+  // ✅ THIS WAS MISSING — currentUser state
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // ✅ Keep user logged in even after page refresh
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser({
+          uid: user.uid,
+          name: user.displayName || user.email.split("@")[0],
+          email: user.email,
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Global Events State
   const [events, setEvents] = useState([
     {
       id: 1,
@@ -34,15 +56,10 @@ function App() {
     setEvents(events.filter((e) => e.id !== event.id));
   };
 
-  const addEvent = (newEvent) => {
-    setEvents([...events, newEvent]);
-  };
+  const addEvent = (newEvent) => setEvents([...events, newEvent]);
 
-  const updateEvent = (updatedEvent) => {
-    setEvents(
-      events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
-    );
-  };
+  const updateEvent = (updatedEvent) =>
+    setEvents(events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
 
   return (
     <div className="w-full min-h-screen relative bg-black overflow-hidden text-white">
@@ -50,19 +67,13 @@ function App() {
       {page === "landing" && (
         <>
           <div style={{ position: "absolute", inset: 0 }}>
-            <LiquidEther
-              colors={["#5227FF", "#FF9FFC", "#B19EEF"]}
-              mouseForce={20}
-              cursorSize={100}
-              isViscous
-              viscous={30}
-              resolution={0.5}
-              autoDemo
-              autoSpeed={0.5}
-            />
+            <Particles particleColors={["#ffffff"]} particleCount={120} />
           </div>
 
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-white">
+          <div
+            className="absolute inset-0 flex flex-col justify-center items-center text-white"
+            style={{ zIndex: 5 }}
+          >
             <h1 className="font-bold text-6xl mb-10">
               CampusLife: AI Integrated
             </h1>
@@ -90,21 +101,29 @@ function App() {
         </>
       )}
 
-      {page === "login" && <Login setPage={setPage} />}
-      {page === "signup" && <Signup setPage={setPage} />}
+      {/* ✅ setCurrentUser now exists and is passed correctly */}
+      {page === "login" && (
+        <Login setPage={setPage} setCurrentUser={setCurrentUser} />
+      )}
+      {page === "signup" && (
+        <Signup setPage={setPage} setCurrentUser={setCurrentUser} />
+      )}
       {page === "loading" && <LoadingScreen setPage={setPage} />}
-      {page === "home" && <Home setPage={setPage} />}
+      {page === "home" && (
+        <Home setPage={setPage} currentUser={currentUser} />
+      )}
       {page === "help" && <Help setPage={setPage} />}
       {page === "about" && <About setPage={setPage} />}
+      {page === "reviews" && (
+        <CampusReviews setPage={setPage} currentUser={currentUser} />
+      )}
 
       {page === "events" && (
-        <Events
-          setPage={setPage}
-          events={events}
-          enrolledEvents={enrolledEvents}
-          enrollEvent={enrollEvent}
-        />
-      )}
+  <Events
+    setPage={setPage}
+    currentUser={currentUser}
+  />
+)}
 
       {page === "admin" && (
         <AdminPanel
