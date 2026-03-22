@@ -191,13 +191,6 @@ function App() {
     },
   ]);
 
-  const [enrolledEvents, setEnrolledEvents] = useState([]);
-
-  const enrollEvent = (event) => {
-    setEnrolledEvents([...enrolledEvents, event]);
-    setEvents(events.filter((e) => e.id !== event.id));
-  };
-
   const addEvent = (newEvent) => setEvents([...events, newEvent]);
   const updateEvent = (updatedEvent) =>
     setEvents(events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
