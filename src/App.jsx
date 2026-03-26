@@ -226,8 +226,8 @@ function App() {
       {page === "signup" && <Signup setPage={setPage} setCurrentUser={setCurrentUser} />}
       {page === "loading" && <LoadingScreen setPage={setPage} />}
       {page === "home" && <Home setPage={setPage} currentUser={currentUser} />}
-      {page === "help" && <Help setPage={setPage} />}
-      {page === "about" && <About setPage={setPage} />}
+      {page === "help" && <Help setPage={setPage} currentUser={currentUser} />}
+      {page === "about" && <About setPage={setPage} currentUser={currentUser} />}
       {page === "reviews" && <CampusReviews setPage={setPage} currentUser={currentUser} />}
       {page === "events" && (
         <Events

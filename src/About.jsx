@@ -43,7 +43,7 @@ const team = [
   },
 ];
 
-function About({ setPage }) {
+function About({ setPage, currentUser }) {
   return (
     <div className="about-root">
 
@@ -60,9 +60,9 @@ function About({ setPage }) {
             <h2 className="about-navbar-title">ABOUT US</h2>
             <small className="about-navbar-sub">The story behind CampusLife</small>
           </div>
-          <button className="about-back-btn" onClick={() => setPage("home")}>
-            Back to Dashboard
-          </button>
+         <button className="about-back-btn" onClick={() => setPage(currentUser ? "home" : "landing")}>
+  {currentUser ? "Back to Dashboard" : "Back to Home"}
+</button>
         </div>
 
         {/* Hero */}

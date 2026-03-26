@@ -44,8 +44,7 @@ function FAQItem({ q, a }) {
   );
 }
 
-function Help({ setPage }) {
-  return (
+function Help({ setPage, currentUser }) {  return (
     <div className="help-root">
 
       {/* Particles */}
@@ -61,9 +60,9 @@ function Help({ setPage }) {
             <h2 className="help-navbar-title">HELP & SUPPORT</h2>
             <small className="help-navbar-sub">Everything you need to know about CampusLife</small>
           </div>
-          <button className="help-back-btn" onClick={() => setPage("home")}>
-            Back to Dashboard
-          </button>
+          <button className="help-back-btn" onClick={() => setPage(currentUser ? "home" : "landing")}>
+  {currentUser ? "Back to Dashboard" : "Back to Home"}
+</button>
         </div>
 
         {/* Hero */}
