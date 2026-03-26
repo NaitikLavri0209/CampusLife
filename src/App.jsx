@@ -11,8 +11,11 @@ import Events from "./Events";
 import AdminPanel from "./AdminPanel";
 import CampusReviews from "./CampusReviews";
 import CampusArcade from "./CampusArcade";
+import AttendancePage from "./AttendancePage";
 import { auth } from "./firebase";
+import { db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 // ── Landing Page ───────────────────────────────────────────────────────────────
 function LandingPage({ setPage }) {
@@ -52,12 +55,10 @@ function LandingPage({ setPage }) {
   return (
     <div className="landing-root">
 
-      {/* Particles */}
       <div className="landing-particles">
         <Particles particleColors={["#ffffff"]} particleCount={160} speed={0.08} />
       </div>
 
-      {/* ── TOP NAV ── */}
       <nav className="landing-nav">
         <div className="landing-nav-logo">CampusLife</div>
         <div className="landing-nav-links">
@@ -66,7 +67,6 @@ function LandingPage({ setPage }) {
         </div>
       </nav>
 
-      {/* ── HERO ── */}
       <section className="landing-hero">
         <div className="landing-hero-inner">
           <div className="landing-hero-badge">AI Integrated Campus Portal</div>
@@ -81,18 +81,12 @@ function LandingPage({ setPage }) {
 
           <div className="landing-hero-btns">
             <ElectricBorder>
-              <button
-                className="landing-btn-primary"
-                onClick={() => setPage("login")}
-              >
+              <button className="landing-btn-primary" onClick={() => setPage("login")}>
                 Login
               </button>
             </ElectricBorder>
             <ElectricBorder>
-              <button
-                className="landing-btn-primary"
-                onClick={() => setPage("signup")}
-              >
+              <button className="landing-btn-primary" onClick={() => setPage("signup")}>
                 Sign Up
               </button>
             </ElectricBorder>
@@ -105,10 +99,8 @@ function LandingPage({ setPage }) {
         </div>
       </section>
 
-      {/* ── SEGMENTS ── */}
       <section className="landing-segments" ref={sectionsRef}>
         <div className="landing-segments-inner">
-
           <div className="landing-segments-header">
             <h2 className="landing-segments-title">Everything in one place</h2>
             <p className="landing-segments-sub">
@@ -121,22 +113,16 @@ function LandingPage({ setPage }) {
               key={s.title}
               className={`landing-segment-row ${i % 2 !== 0 ? "landing-segment-row-reverse" : ""}`}
             >
-              {/* Image */}
               <div className="landing-segment-img-wrap">
                 <div className="landing-segment-tag">{s.tag}</div>
                 <img src={s.image} alt={s.title} className="landing-segment-img" />
               </div>
-
-              {/* Text */}
               <div className="landing-segment-text">
                 <span className="landing-segment-icon">{s.icon}</span>
                 <p className="landing-segment-subtitle">{s.subtitle}</p>
                 <h3 className="landing-segment-title">{s.title}</h3>
                 <p className="landing-segment-desc">{s.desc}</p>
-                <button
-                  className="landing-segment-cta"
-                  onClick={() => setPage("login")}
-                >
+                <button className="landing-segment-cta" onClick={() => setPage("login")}>
                   Get Started →
                 </button>
               </div>
@@ -145,7 +131,6 @@ function LandingPage({ setPage }) {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
       <footer className="landing-footer">
         <p>CampusLife · Built with ❤️ by Naitik, Mihir & Zeel · Charusat University · 2024</p>
         <div className="landing-footer-links">
@@ -162,15 +147,41 @@ function LandingPage({ setPage }) {
 function App() {
   const [page, setPage] = useState("landing");
   const [currentUser, setCurrentUser] = useState(null);
+  const [attendanceEvent, setAttendanceEvent] = useState(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setCurrentUser({
-          uid: user.uid,
-          name: user.displayName || user.email.split("@")[0],
-          email: user.email,
-        });
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setCurrentUser({
+              uid: user.uid,
+              name: data.name || user.displayName || user.email.split("@")[0],
+              email: user.email,
+              role: data.role || "student",
+              studentId: data.studentId || "",
+            });
+          } else {
+            setCurrentUser({
+              uid: user.uid,
+              name: user.displayName || user.email.split("@")[0],
+              email: user.email,
+              role: "student",
+              studentId: "",
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching user doc:", err);
+          setCurrentUser({
+            uid: user.uid,
+            name: user.displayName || user.email.split("@")[0],
+            email: user.email,
+            role: "student",
+            studentId: "",
+          });
+        }
       } else {
         setCurrentUser(null);
       }
@@ -195,6 +206,19 @@ function App() {
   const updateEvent = (updatedEvent) =>
     setEvents(events.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
 
+  // If attendance page is active, render it on top of everything
+  if (page === "events" && attendanceEvent) {
+    return (
+      <div className="w-full min-h-screen relative bg-black overflow-hidden text-white">
+        <AttendancePage
+          event={attendanceEvent}
+          currentUser={currentUser}
+          onBack={() => setAttendanceEvent(null)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen relative bg-black overflow-hidden text-white">
       {page === "landing" && <LandingPage setPage={setPage} />}
@@ -205,7 +229,13 @@ function App() {
       {page === "help" && <Help setPage={setPage} />}
       {page === "about" && <About setPage={setPage} />}
       {page === "reviews" && <CampusReviews setPage={setPage} currentUser={currentUser} />}
-      {page === "events" && <Events setPage={setPage} currentUser={currentUser} />}
+      {page === "events" && (
+        <Events
+          setPage={setPage}
+          currentUser={currentUser}
+          onOpenAttendance={(event) => setAttendanceEvent(event)}
+        />
+      )}
       {page === "admin" && (
         <AdminPanel
           setPage={setPage}

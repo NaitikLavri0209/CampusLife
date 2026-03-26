@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import ElectricBorder from "./ElectricBorder";
 import Particles from "./Particles";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 function Login({ setPage, setCurrentUser }) {
   const [email, setEmail] = useState("");
@@ -23,12 +24,27 @@ function Login({ setPage, setCurrentUser }) {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
+
+      // Fetch user doc from Firestore to get actual role and studentId
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      const userData = userSnap.exists() ? userSnap.data() : {};
+      const actualRole = userData.role || role;
+
+      // If selected role doesn't match Firestore role, block login
+      if (actualRole !== role) {
+        setError(`This account is not registered as ${role === "admin" ? "an Admin" : "a Student"}.`);
+        setLoading(false);
+        return;
+      }
+
       setCurrentUser({
         uid: user.uid,
-        name: user.displayName || user.email.split("@")[0],
+        name: userData.name || user.displayName || user.email.split("@")[0],
         email: user.email,
-        role: role,
+        role: actualRole,
+        studentId: userData.studentId || "",
       });
+
       setPage("loading");
     } catch (err) {
       console.error(err);
