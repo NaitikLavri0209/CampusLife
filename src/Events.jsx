@@ -5,6 +5,7 @@ import {
   collection, addDoc, onSnapshot, doc, setDoc,
   deleteDoc, query, orderBy, getDocs, getDoc, updateDoc,
 } from "firebase/firestore";
+import { uploadToCloudinary } from "./utils/uploadImage";
 import "./index.css";
 
 function isEventPast(dateStr) {
@@ -23,6 +24,8 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
   const [adminEventsTab, setAdminEventsTab] = useState("upcoming");
   const [showAddForm, setShowAddForm] = useState(false);
   const [posterPreview, setPosterPreview] = useState(null);
+  const [posterUploading, setPosterUploading] = useState(false);
+  const [certUploading, setCertUploading] = useState(false);
   const [events, setEvents] = useState([]);
   const [enrolledEvents, setEnrolledEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -106,6 +109,10 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
       alert("Please fill in Title, Date, and Location at minimum.");
       return;
     }
+    if (posterUploading || certUploading) {
+      alert("Please wait for uploads to finish.");
+      return;
+    }
     await addDoc(collection(db, "events"), {
       ...form,
       createdAt: Date.now(),
@@ -129,29 +136,24 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
     setOpenMenuId(null);
   };
 
- const handleSaveEdit = async () => {
-  if (!editForm.title || !editForm.date || !editForm.location) {
-    alert("Title, Date, and Location are required.");
-    return;
-  }
-
-  // Update main event
-  await updateDoc(doc(db, "events", editingEvent.id), { ...editForm });
-
-  // Update copy in every enrolled student's subcollection
-  const enrollmentsSnap = await getDocs(
-    collection(db, "events", editingEvent.id, "enrollments")
-  );
-  const updatePromises = enrollmentsSnap.docs.map((enrollDoc) =>
-    updateDoc(
-      doc(db, "users", enrollDoc.id, "enrolledEvents", editingEvent.id),
-      { ...editForm }
-    )
-  );
-  await Promise.all(updatePromises);
-
-  setEditingEvent(null);
-};
+  const handleSaveEdit = async () => {
+    if (!editForm.title || !editForm.date || !editForm.location) {
+      alert("Title, Date, and Location are required.");
+      return;
+    }
+    await updateDoc(doc(db, "events", editingEvent.id), { ...editForm });
+    const enrollmentsSnap = await getDocs(
+      collection(db, "events", editingEvent.id, "enrollments")
+    );
+    const updatePromises = enrollmentsSnap.docs.map((enrollDoc) =>
+      updateDoc(
+        doc(db, "users", enrollDoc.id, "enrolledEvents", editingEvent.id),
+        { ...editForm }
+      )
+    );
+    await Promise.all(updatePromises);
+    setEditingEvent(null);
+  };
 
   const handleEnroll = async (event) => {
     if (!currentUser) { alert("Please login to enroll."); return; }
@@ -173,23 +175,40 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
     await deleteDoc(doc(db, "events", eventId, "enrollments", currentUser.uid));
   };
 
-  const handlePosterUpload = (e) => {
+  // ── CLOUDINARY POSTER UPLOAD ─────────────────────────────────────────────────
+  const handlePosterUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const objectURL = URL.createObjectURL(file);
-    setPosterPreview(objectURL);
-    setForm({ ...form, image: objectURL });
+    setPosterPreview(URL.createObjectURL(file));
+    setPosterUploading(true);
+    try {
+      const cloudinaryURL = await uploadToCloudinary(file);
+      setForm((prev) => ({ ...prev, image: cloudinaryURL }));
+    } catch (err) {
+      alert("Poster upload failed. Check your Cloudinary config.");
+      setPosterPreview(null);
+      setForm((prev) => ({ ...prev, image: "" }));
+    } finally {
+      setPosterUploading(false);
+    }
   };
 
-  const handleCertUpload = (e) => {
+  // ── CLOUDINARY CERTIFICATE UPLOAD ────────────────────────────────────────────
+  const handleCertUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setCertPreview(ev.target.result);
-      setForm({ ...form, certificateTemplate: ev.target.result });
-    };
-    reader.readAsDataURL(file);
+    setCertPreview(URL.createObjectURL(file));
+    setCertUploading(true);
+    try {
+      const cloudinaryURL = await uploadToCloudinary(file);
+      setForm((prev) => ({ ...prev, certificateTemplate: cloudinaryURL }));
+    } catch (err) {
+      alert("Certificate template upload failed. Check your Cloudinary config.");
+      setCertPreview(null);
+      setForm((prev) => ({ ...prev, certificateTemplate: "" }));
+    } finally {
+      setCertUploading(false);
+    }
   };
 
   const handleDownloadCSV = (event) => {
@@ -236,7 +255,6 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
   const adminDisplay = adminEventsTab === "upcoming" ? adminUpcoming : adminPast;
 
   const displayEvents = isAdmin ? adminDisplay : viewType === "all" ? filteredEvents : enrolledDisplay;
-
 
   return (
     <div className="events-root">
@@ -341,36 +359,61 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
                     <label>Description</label>
                     <textarea placeholder="Brief description..." value={form.description} rows={3} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                   </div>
+
+                  {/* POSTER UPLOAD */}
                   <div className="events-form-field full-width">
                     <label>Event Poster</label>
                     <label className="events-poster-upload-label">
-                      Choose Poster from Files
-                      <input type="file" accept="image/*" onChange={handlePosterUpload} style={{ display: "none" }} />
+                      {posterUploading ? "Uploading poster..." : "Choose Poster from Files"}
+                      <input type="file" accept="image/*" onChange={handlePosterUpload} style={{ display: "none" }} disabled={posterUploading} />
                     </label>
-                    {posterPreview && (
+                    {posterUploading && (
+                      <p style={{ fontSize: "13px", color: "#a990ff", marginTop: "6px" }}>
+                        Uploading poster to Cloudinary...
+                      </p>
+                    )}
+                    {posterPreview && !posterUploading && (
                       <div className="events-poster-preview-wrapper">
                         <img src={posterPreview} alt="Poster Preview" />
                         <button className="events-poster-remove-btn" onClick={() => { setPosterPreview(null); setForm({ ...form, image: "" }); }}>x</button>
                       </div>
                     )}
                   </div>
-                  {/* Certificate Template Upload */}
+
+                  {/* CERTIFICATE TEMPLATE UPLOAD */}
                   <div className="events-form-field full-width">
-                    <label>🎓 Certificate Template <span style={{ fontSize: "12px", color: "#aaa" }}>(student name will be auto-placed)</span></label>
-                    <label className="events-poster-upload-label" style={{ background: "#1a3a1a", borderColor: "#2d6a2d" }}>
-                      Upload Certificate Template
-                      <input type="file" accept="image/*" onChange={handleCertUpload} style={{ display: "none" }} />
+                    <label>
+                      Certificate Template
+                      <span style={{ fontSize: "12px", color: "#aaa", marginLeft: "8px" }}>
+                        (type {"{{"} STUDENT_NAME {"}}"} where the name should appear)
+                      </span>
                     </label>
-                    {certPreview && (
+                    <label className="events-poster-upload-label" style={{ background: "#1a3a1a", borderColor: "#2d6a2d" }}>
+                      {certUploading ? "Uploading template..." : "Upload Certificate Template"}
+                      <input type="file" accept="image/*" onChange={handleCertUpload} style={{ display: "none" }} disabled={certUploading} />
+                    </label>
+                    {certUploading && (
+                      <p style={{ fontSize: "13px", color: "#a990ff", marginTop: "6px" }}>
+                        Uploading certificate template to Cloudinary...
+                      </p>
+                    )}
+                    {certPreview && !certUploading && (
                       <div className="events-poster-preview-wrapper">
                         <img src={certPreview} alt="Certificate Template" style={{ maxHeight: "120px" }} />
                         <button className="events-poster-remove-btn" onClick={() => { setCertPreview(null); setForm({ ...form, certificateTemplate: "" }); }}>x</button>
                       </div>
                     )}
                   </div>
+
                 </div>
                 <div className="events-add-form-actions">
-                  <button className="events-btn-publish" onClick={handleAddEvent}>Publish Event</button>
+                  <button
+                    className="events-btn-publish"
+                    onClick={handleAddEvent}
+                    disabled={posterUploading || certUploading}
+                  >
+                    {posterUploading || certUploading ? "Uploading files..." : "Publish Event"}
+                  </button>
                   <button className="events-btn-cancel" onClick={() => { setShowAddForm(false); setPosterPreview(null); setCertPreview(null); }}>Cancel</button>
                 </div>
               </div>
@@ -405,14 +448,16 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
                   const enrollments = eventEnrollments[event.id] || [];
                   const isExpanded = expandedEnrollments[event.id] || false;
                   const isPast = isEventPast(event.date);
-                  const generateStudentCertificate = async (event) => {
+
+                 const generateStudentCertificate = async (event) => {
   if (!event.certificateTemplate) {
-    alert("No certificate template for this event.");
+    alert("No certificate template uploaded for this event.");
     return;
   }
 
   const studentName = currentUser?.name || "Student";
 
+  // ── Load the original template ────────────────────────────────────────────
   const img = new Image();
   img.crossOrigin = "anonymous";
   img.src = event.certificateTemplate;
@@ -426,23 +471,113 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
   const ctx = canvas.getContext("2d");
-
   ctx.drawImage(img, 0, 0);
 
-  const nameY = canvas.height * 0.52;
-  const fontSize = Math.max(36, Math.floor(canvas.width * 0.045));
-  ctx.font = `bold ${fontSize}px Georgia, serif`;
-  ctx.fillStyle = "#2c3e50";
+  const base64Image = canvas.toDataURL("image/png");
+
+  // ── Call Gemini with detailed logging ─────────────────────────────────────
+  const GEMINI_API_KEY = "AIzaSyCtdruY-OE2wtEDxO7ZNGQNR2Ro4pxt-q4";
+
+  const prompt = `Look at this certificate image carefully. 
+There is a placeholder text that says exactly: {{STUDENT_NAME}}
+This text is written somewhere on the certificate as a placeholder for a real student name.
+
+I need you to find the EXACT pixel location of this placeholder text.
+The image is ${canvas.width} pixels wide and ${canvas.height} pixels tall.
+
+Also look at the style of the {{STUDENT_NAME}} text carefully:
+- What color is it? (give exact hex)
+- Is it bold?
+- Is it italic?
+- How large is it compared to the image width? (give as decimal like 0.05)
+- What font does it look like?
+
+Return ONLY this JSON and nothing else:
+{"x":NUMBER,"y":NUMBER,"color":"#HEXCODE","fontSize":NUMBER,"fontStyle":"italic or normal","fontWeight":"bold or normal","fontFamily":"Georgia or Arial or Times New Roman"}`;
+
+  let nameX, nameY, nameColor, nameFontSize, nameFontStyle, nameFontWeight, nameFontFamily;
+  let geminiWorked = false;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: "image/png", data: base64Image.split(",")[1] } },
+              { text: prompt }
+            ]
+          }],
+          generationConfig: { temperature: 0, maxOutputTokens: 200 }
+        })
+      }
+    );
+
+    const data = await response.json();
+    console.log("Gemini raw response:", JSON.stringify(data));
+
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    console.log("Gemini text:", rawText);
+
+    if (!rawText) throw new Error("Empty response from Gemini");
+
+    // Extract JSON even if Gemini wraps it in markdown
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in response: " + rawText);
+
+    const result = JSON.parse(jsonMatch[0]);
+    console.log("Parsed result:", result);
+
+    if (!result.x || !result.y) throw new Error("Missing x or y in result");
+
+    nameX          = result.x;
+    nameY          = result.y;
+    nameColor      = result.color      || "#000000";
+    nameFontSize   = Math.floor(canvas.width * (result.fontSize || 0.05));
+    nameFontStyle  = result.fontStyle  || "normal";
+    nameFontWeight = result.fontWeight || "bold";
+    nameFontFamily = result.fontFamily || "Arial";
+    geminiWorked   = true;
+
+    console.log(`AI detected: x=${nameX}, y=${nameY}, color=${nameColor}, size=${nameFontSize}`);
+
+  } catch (err) {
+    console.error("Gemini failed:", err.message);
+    // DO NOT silently fall back — tell the user
+    alert(`AI detection failed: ${err.message}\n\nCheck browser console (F12) for details.\n\nMake sure your Gemini API key is correct in detectNamePosition.js`);
+    return;
+  }
+
+  // ── Restore original background over placeholder using clip ───────────────
+  const coverWidth  = Math.floor(canvas.width * 0.45);
+  const coverHeight = Math.floor(canvas.height * 0.12);
+  const coverX = Math.floor(nameX - coverWidth / 2);
+  const coverY = Math.floor(nameY - coverHeight / 2);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(coverX, coverY, coverWidth, coverHeight);
+  ctx.clip();
+  ctx.drawImage(img, 0, 0); // redraw original — perfectly restores background
+  ctx.restore();
+
+  // ── Draw student name ─────────────────────────────────────────────────────
+  ctx.save();
+  ctx.font = `${nameFontStyle} ${nameFontWeight} ${nameFontSize}px "${nameFontFamily}", serif`;
+  ctx.fillStyle = nameColor;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.shadowColor = "rgba(0,0,0,0.15)";
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
-  ctx.fillText(studentName, canvas.width / 2, nameY);
-  ctx.shadowColor = "transparent";
-  ctx.shadowBlur = 0;
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 1;
+  ctx.fillText(studentName, nameX, nameY);
+  ctx.restore();
 
+  // ── Download ──────────────────────────────────────────────────────────────
   const link = document.createElement("a");
   link.download = `${event.title}_certificate_${studentName}.png`;
   link.href = canvas.toDataURL("image/png");
@@ -468,20 +603,20 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
                                 style={{ width: "100%", padding: "10px 16px", background: "transparent", border: "none", color: "#fff", cursor: "pointer", textAlign: "left", fontSize: "14px" }}
                                 onMouseEnter={(e) => e.target.style.background = "#2a2a3e"}
                                 onMouseLeave={(e) => e.target.style.background = "transparent"}
-                              >✏️ Edit Event</button>
+                              >Edit Event</button>
                               <button
                                 onClick={() => handleDeleteEvent(event.id)}
                                 style={{ width: "100%", padding: "10px 16px", background: "transparent", border: "none", color: "#e74c3c", cursor: "pointer", textAlign: "left", fontSize: "14px" }}
                                 onMouseEnter={(e) => e.target.style.background = "#2a2a3e"}
                                 onMouseLeave={(e) => e.target.style.background = "transparent"}
-                              >🗑️ Delete Event</button>
+                              >Delete Event</button>
                               {isPast && (
                                 <button
                                   onClick={() => { onOpenAttendance(event); setOpenMenuId(null); }}
                                   style={{ width: "100%", padding: "10px 16px", background: "transparent", border: "none", color: "#2ecc71", cursor: "pointer", textAlign: "left", fontSize: "14px" }}
                                   onMouseEnter={(e) => e.target.style.background = "#2a2a3e"}
                                   onMouseLeave={(e) => e.target.style.background = "transparent"}
-                                >📋 Attendance</button>
+                                >Attendance</button>
                               )}
                             </div>
                           )}
@@ -510,21 +645,21 @@ function Events({ setPage, currentUser, onOpenAttendance }) {
                           <button className="events-btn-enroll" style={{ background: "#e74c3c" }} onClick={() => handleUnenroll(event.id)}>Unenroll</button>
                         )}
                         {!isAdmin && viewType === "enrolled" && enrolledTab === "completed" && (
-  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
-    <div className="events-attended-badge">✓ Attended</div>
-    {event.certificateTemplate ? (
-      <button
-        className="events-btn-enroll"
-        style={{ background: "#6c63ff", fontSize: "13px", padding: "8px 14px" }}
-        onClick={() => generateStudentCertificate(event)}
-      >
-        🎓 Download Certificate
-      </button>
-    ) : (
-      <p style={{ fontSize: "12px", color: "#888", margin: 0 }}>No certificate available</p>
-    )}
-  </div>
-)}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+                            <div className="events-attended-badge">Attended</div>
+                            {event.certificateTemplate ? (
+                              <button
+                                className="events-btn-enroll"
+                                style={{ background: "#6c63ff", fontSize: "13px", padding: "8px 14px" }}
+                                onClick={() => generateStudentCertificate(event)}
+                              >
+                                Download Certificate
+                              </button>
+                            ) : (
+                              <p style={{ fontSize: "12px", color: "#888", margin: 0 }}>No certificate available</p>
+                            )}
+                          </div>
+                        )}
 
                         {isAdmin && isMyEvent && (
                           <div className="events-enrollments-panel">
