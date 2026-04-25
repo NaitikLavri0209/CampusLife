@@ -76,20 +76,26 @@ function Help({ setPage, currentUser }) {  return (
         {/* Quick Links */}
         <div className="help-quick-links">
           {[
-            { label: "Events", icon: "🎯", page: "events" },
-            { label: "Campus Tea", icon: "☕", page: "reviews" },
-            { label: "Campus Arcade", icon: "🎮", page: "games" },
-          ].map((item) => (
-            <button
-              key={item.page}
-              className="help-quick-card"
-              onClick={() => setPage(item.page)}
-            >
-              <span className="help-quick-icon">{item.icon}</span>
-              <span className="help-quick-label">{item.label}</span>
-              <span className="help-quick-arrow">→</span>
-            </button>
-          ))}
+  { label: "Events", icon: "🎯", page: "events" },
+  { label: "Campus Tea", icon: "☕", page: "reviews" },
+  { label: "Campus Arcade", icon: "🎮", page: "games" },
+].map((item) => (
+  <button
+    key={item.page}
+    className="help-quick-card"
+    onClick={() => {
+      if (currentUser) {
+        setPage(item.page);
+      } else {
+        setPage("login");
+      }
+    }}
+  >
+    <span className="help-quick-icon">{item.icon}</span>
+    <span className="help-quick-label">{item.label}</span>
+    <span className="help-quick-arrow">→</span>
+  </button>
+))}
         </div>
 
         {/* FAQ */}
